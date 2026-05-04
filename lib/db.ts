@@ -84,7 +84,7 @@ export interface Board {
 }
 
 export function getAllBoards(): Board[] {
-  return getDb().prepare("SELECT * FROM boards ORDER BY created_at DESC").all() as Board[];
+  return getDb().prepare("SELECT * FROM boards ORDER BY id DESC").all() as Board[];
 }
 
 export function getBoardById(id: number): Board | undefined {

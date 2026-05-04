@@ -6,7 +6,7 @@ Each test file maps to one spec. Status: ⬜ pending | 🟡 in_progress | ✅ pa
 |------|-----------|------------|--------|
 | S1 | `__tests__/s1-scaffold.test.ts` | Project builds, dev server starts, vitest runs, deps installed | ✅ |
 | S2 | `__tests__/s2-database.test.ts` | DB file created, tables exist, CRUD helpers work, migrations run | ✅ |
-| S3 | `__tests__/s3-board-api.test.ts` | GET/POST/PUT/DELETE boards, validation, error handling | ⬜ |
+| S3 | `__tests__/s3-board-api.test.ts` | GET/POST/PUT/DELETE boards, validation, error handling | ✅ |
 | S4 | `__tests__/s4-board-ui.test.tsx` | Board list renders, create/edit/delete dialogs, navigation | ⬜ |
 | S5 | `__tests__/s5-column-api.test.ts` | GET/POST/PUT/DELETE columns, reorder, cascade delete | ⬜ |
 | S6 | `__tests__/s6-column-ui.test.tsx` | Columns render on board, add/edit/delete column | ⬜ |

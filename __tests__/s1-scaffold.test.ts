@@ -28,7 +28,7 @@ describe("S1 - Project scaffold", () => {
   it("has proper TypeScript config", () => {
     const tsconfig = require("../tsconfig.json");
     expect(tsconfig.compilerOptions.strict).toBe(true);
-    expect(tsconfig.compilerOptions.jsx).toBe("preserve");
+    expect(tsconfig.compilerOptions.jsx).toBe("react-jsx");
   });
 
   it("renders homepage without errors", () => {
