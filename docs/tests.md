@@ -8,7 +8,7 @@ Each test file maps to one spec. Status: ⬜ pending | 🟡 in_progress | ✅ pa
 | S2 | `__tests__/s2-database.test.ts` | DB file created, tables exist, CRUD helpers work, migrations run | ✅ |
 | S3 | `__tests__/s3-board-api.test.ts` | GET/POST/PUT/DELETE boards, validation, error handling | ✅ |
 | S4 | `__tests__/s4-board-ui.test.tsx` | Board list renders, create/edit/delete dialogs, navigation | ✅ |
-| S5 | `__tests__/s5-column-api.test.ts` | GET/POST/PUT/DELETE columns, reorder, cascade delete | ⬜ |
+| S5 | `__tests__/s5-column-api.test.ts` | GET/POST/PUT/DELETE columns, reorder, cascade delete | ✅ |
 | S6 | `__tests__/s6-column-ui.test.tsx` | Columns render on board, add/edit/delete column | ⬜ |
 | S7 | `__tests__/s7-card-api.test.ts` | CRUD cards, priority validation, due_date | ⬜ |
 | S8 | `__tests__/s8-card-ui.test.tsx` | Card rendering, create/edit dialog, priority/due date display | ⬜ |
