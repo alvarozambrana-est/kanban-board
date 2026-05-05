@@ -199,6 +199,9 @@ export interface Card {
   position: number;
   priority: "low" | "medium" | "high";
   due_date: string | null;
+  type_id: number | null;
+  author_id: number | null;
+  assignee_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -229,21 +232,24 @@ export function createCard(
   title: string,
   description = "",
   priority: "low" | "medium" | "high" = "medium",
-  dueDate: string | null = null
+  dueDate: string | null = null,
+  typeId?: number,
+  authorId?: number,
+  assigneeId?: number
 ): Card {
   const maxPos = getDb()
     .prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM cards WHERE column_id = ?")
     .get(columnId) as { next: number };
   const stmt = getDb().prepare(
-    "INSERT INTO cards (column_id, title, description, position, priority, due_date) VALUES (?, ?, ?, ?, ?, ?)"
+    "INSERT INTO cards (column_id, title, description, position, priority, due_date, type_id, author_id, assignee_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
   );
-  const result = stmt.run(columnId, title, description, maxPos.next, priority, dueDate);
+  const result = stmt.run(columnId, title, description, maxPos.next, priority, dueDate, typeId ?? null, authorId ?? null, assigneeId ?? null);
   return getCardById(result.lastInsertRowid as number)!;
 }
 
 export function updateCard(
   id: number,
-  data: Partial<Pick<Card, "title" | "description" | "priority" | "due_date" | "column_id" | "position">>
+  data: Partial<Pick<Card, "title" | "description" | "priority" | "due_date" | "column_id" | "position" | "type_id" | "assignee_id">>
 ): Card | undefined {
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -254,6 +260,8 @@ export function updateCard(
   if (data.due_date !== undefined) { fields.push("due_date = ?"); values.push(data.due_date); }
   if (data.column_id !== undefined) { fields.push("column_id = ?"); values.push(data.column_id); }
   if (data.position !== undefined) { fields.push("position = ?"); values.push(data.position); }
+  if (data.type_id !== undefined) { fields.push("type_id = ?"); values.push(data.type_id); }
+  if (data.assignee_id !== undefined) { fields.push("assignee_id = ?"); values.push(data.assignee_id); }
 
   if (fields.length === 0) return getCardById(id);
 
@@ -383,4 +391,93 @@ export function getCardLabelMapForBoard(boardId: number): Record<number, Label[]
     map[row.card_id].push({ id: row.id, name: row.name, color: row.color });
   }
   return map;
+}
+
+/* ---------- User helpers ---------- */
+
+export interface User {
+  id: number;
+  name: string;
+  email: string | null;
+  avatar_url: string | null;
+}
+
+export function getAllUsers(): User[] {
+  return getDb().prepare("SELECT * FROM users ORDER BY name ASC").all() as User[];
+}
+
+export function getUserById(id: number): User | undefined {
+  return getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as User | undefined;
+}
+
+export function createUser(name: string, email?: string, avatarUrl?: string): User {
+  const result = getDb()
+    .prepare("INSERT INTO users (name, email, avatar_url) VALUES (?, ?, ?)")
+    .run(name, email || null, avatarUrl || null);
+  return getUserById(result.lastInsertRowid as number)!;
+}
+
+export function updateUser(id: number, name: string, email?: string, avatarUrl?: string): User | undefined {
+  getDb()
+    .prepare("UPDATE users SET name = ?, email = ?, avatar_url = ? WHERE id = ?")
+    .run(name, email || null, avatarUrl || null, id);
+  return getUserById(id);
+}
+
+export function deleteUser(id: number): boolean {
+  const result = getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
+  return result.changes > 0;
+}
+
+/* ---------- Board users helpers ---------- */
+
+export function getBoardUsers(boardId: number): User[] {
+  return getDb()
+    .prepare("SELECT u.* FROM users u JOIN board_users bu ON u.id = bu.user_id WHERE bu.board_id = ? ORDER BY u.name ASC")
+    .all(boardId) as User[];
+}
+
+export function addUserToBoard(boardId: number, userId: number): void {
+  getDb()
+    .prepare("INSERT OR IGNORE INTO board_users (board_id, user_id) VALUES (?, ?)")
+    .run(boardId, userId);
+}
+
+export function removeUserFromBoard(boardId: number, userId: number): void {
+  getDb()
+    .prepare("DELETE FROM board_users WHERE board_id = ? AND user_id = ?")
+    .run(boardId, userId);
+}
+
+/* ---------- Card type helpers ---------- */
+
+export interface CardType {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export function getAllCardTypes(): CardType[] {
+  return getDb().prepare("SELECT * FROM card_types ORDER BY id ASC").all() as CardType[];
+}
+
+export function getCardTypeById(id: number): CardType | undefined {
+  return getDb().prepare("SELECT * FROM card_types WHERE id = ?").get(id) as CardType | undefined;
+}
+
+export function createCardType(name: string, color = "#6366f1"): CardType {
+  const result = getDb()
+    .prepare("INSERT INTO card_types (name, color) VALUES (?, ?)")
+    .run(name, color);
+  return getCardTypeById(result.lastInsertRowid as number)!;
+}
+
+export function updateCardType(id: number, name: string, color: string): CardType | undefined {
+  getDb().prepare("UPDATE card_types SET name = ?, color = ? WHERE id = ?").run(name, color, id);
+  return getCardTypeById(id);
+}
+
+export function deleteCardType(id: number): boolean {
+  const result = getDb().prepare("DELETE FROM card_types WHERE id = ?").run(id);
+  return result.changes > 0;
 }

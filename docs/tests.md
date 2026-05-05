@@ -19,3 +19,4 @@ All 13 specs completed — 144 tests passing.
 | S11 | `__tests__/s11-reorder.test.tsx` | Card reorder within column, column reorder, position integrity | ✅ |
 | S12 | `__tests__/s12-integration.test.ts` | Full flow: board → columns → cards → labels → drag → verify | ✅ |
 | S13 | `__tests__/s13-labels-per-project.test.ts` | Labels scoped per board, board-scoped API, cascade delete | ✅ |
+| S14 | `__tests__/s14-users.test.ts` | User CRUD, board membership, card author/assignee | ✅ |

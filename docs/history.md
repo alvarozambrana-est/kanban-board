@@ -16,3 +16,4 @@
 | 2026-05-04 | S11 | Reordering — sortable columns, card position integrity | ✅ 5/5 tests pass, 135 total |
 | 2026-05-04 | S12 | Integration + Polish — end-to-end workflow tests | ✅ 2/2 tests pass, 137 total |
 | 2026-05-04 | S13 | Labels per-project + card dialog assignment | ✅ 7/7 tests pass, 144 total |
+| 2026-05-04 | S14 | Users CRUD + board membership + card author/assignee | ✅ 13/13 tests pass, 157 total |
