@@ -16,9 +16,10 @@ interface LabelManagerProps {
   open: boolean;
   onClose: () => void;
   boardId: number;
+  standalone?: boolean;
 }
 
-export function LabelManager({ open, onClose, boardId }: LabelManagerProps) {
+export function LabelManager({ open, onClose, boardId, standalone = true }: LabelManagerProps) {
   const [labels, setLabels] = useState<Label[]>([]);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#6366f1");
@@ -64,18 +65,12 @@ export function LabelManager({ open, onClose, boardId }: LabelManagerProps) {
     fetchLabels();
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Manage Labels</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {labels.length === 0 && (
-            <p className="text-sm text-muted-foreground">No labels yet. Create one below.</p>
-          )}
-          {labels.map((label) => (
+  const content = (
+    <div className="space-y-4 py-4">
+      {labels.length === 0 && (
+        <p className="text-sm text-muted-foreground">No labels yet. Create one below.</p>
+      )}
+      {labels.map((label) => (
             <div key={label.id} className="flex items-center gap-2">
               {editingId === label.id ? (
                 <>
@@ -146,7 +141,17 @@ export function LabelManager({ open, onClose, boardId }: LabelManagerProps) {
               <Plus className="mr-1 h-4 w-4" /> Add
             </Button>
           </div>
-        </div>
+    </div>
+  );
+  if (!standalone) return content;
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Manage Labels</DialogTitle>
+        </DialogHeader>
+        {content}
       </DialogContent>
     </Dialog>
   );

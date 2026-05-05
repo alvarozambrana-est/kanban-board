@@ -53,7 +53,7 @@ export function BoardManager({ open, onClose, boardId }: BoardManagerProps) {
 
         <div className="min-h-[200px]">
           {tab === "users" && <UserManager boardId={boardId} />}
-          {tab === "labels" && <LabelManager open={true} onClose={() => {}} boardId={boardId} />}
+          {tab === "labels" && <LabelManager open={true} onClose={() => {}} boardId={boardId} standalone={false} />}
           {tab === "types" && <TypeManager />}
         </div>
       </DialogContent>
