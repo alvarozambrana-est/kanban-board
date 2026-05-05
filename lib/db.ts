@@ -388,7 +388,7 @@ export function getCardLabelMapForBoard(boardId: number): Record<number, Label[]
   const map: Record<number, Label[]> = {};
   for (const row of rows) {
     if (!map[row.card_id]) map[row.card_id] = [];
-    map[row.card_id].push({ id: row.id, name: row.name, color: row.color });
+    map[row.card_id].push({ id: row.id, name: row.name, color: row.color, board_id: null });
   }
   return map;
 }
