@@ -11,3 +11,4 @@
 | 2026-05-04 | S6 | Column UI — columns on board page, board header | ✅ 13/13 tests pass, 85 total |
 | 2026-05-04 | S7 | Card API — CRUD routes with priority, due date, move | ✅ 14/14 tests pass, 99 total |
 | 2026-05-04 | S8 | Card UI — cards in columns, create/edit dialog | ✅ 11/11 tests pass, 110 total |
+| 2026-05-04 | S9 | Drag & Drop — @dnd-kit between columns | ✅ 6/6 tests pass, 116 total |

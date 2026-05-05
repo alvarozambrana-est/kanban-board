@@ -3,9 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import {
+  DndContext,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { BoardHeader } from "@/components/board-header";
-import { KanbanColumn } from "@/components/kanban-column";
+import { DroppableColumn } from "@/components/droppable-column";
+import { DraggableCard } from "@/components/draggable-card";
 import { KanbanCard } from "@/components/kanban-card";
 import { CardDialog } from "@/components/card-dialog";
 import { Input } from "@/components/ui/input";
@@ -24,6 +34,11 @@ export default function BoardPage() {
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [activeCard, setActiveCard] = useState<Card | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const fetchBoard = useCallback(async () => {
     const res = await fetch(`/api/boards/${boardId}`);
@@ -52,6 +67,68 @@ export default function BoardPage() {
 
   const refreshBoard = () => {
     fetchColumns();
+    fetchCards();
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    if (active.data.current?.type === "card") {
+      setActiveCard(active.data.current.card as Card);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveCard(null);
+    const { active, over } = event;
+
+    if (!over || active.data.current?.type !== "card") return;
+
+    const draggedCard = active.data.current.card as Card;
+    let targetColumnId: number | null = null;
+
+    if (over.data.current?.type === "column") {
+      targetColumnId = (over.data.current.column as Column).id;
+    } else if (over.data.current?.type === "card") {
+      targetColumnId = (over.data.current.card as Card).column_id;
+    }
+
+    if (targetColumnId === null) return;
+
+    // Determine target position
+    const targetCards = cards
+      .filter((c) => c.column_id === targetColumnId)
+      .filter((c) => c.id !== draggedCard.id)
+      .sort((a, b) => a.position - b.position);
+
+    let toPosition = targetCards.length;
+
+    if (over.data.current?.type === "card") {
+      const overCard = over.data.current.card as Card;
+      if (overCard.column_id === targetColumnId) {
+        toPosition = overCard.position;
+      }
+    }
+
+    // Optimistic update
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === draggedCard.id
+          ? { ...c, column_id: targetColumnId!, position: toPosition }
+          : c
+      )
+    );
+
+    // Persist to API
+    await fetch("/api/cards/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardId: draggedCard.id,
+        toColumnId: targetColumnId,
+        toPosition,
+      }),
+    });
+
     fetchCards();
   };
 
@@ -133,7 +210,9 @@ export default function BoardPage() {
   };
 
   const getCardsForColumn = (columnId: number) =>
-    cards.filter((c) => c.column_id === columnId);
+    cards
+      .filter((c) => c.column_id === columnId)
+      .sort((a, b) => a.position - b.position);
 
   if (!board) {
     return (
@@ -153,54 +232,64 @@ export default function BoardPage() {
         />
       </header>
 
-      <main className="flex flex-1 gap-4 overflow-x-auto p-6">
-        {columns.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            column={col}
-            onRename={handleRenameColumn}
-            onDelete={handleDeleteColumn}
-            onAddCard={handleOpenCreateCard}
-          >
-            {getCardsForColumn(col.id).map((card) => (
-              <KanbanCard key={card.id} card={card} onClick={handleOpenEditCard} />
-            ))}
-          </KanbanColumn>
-        ))}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <main className="flex flex-1 gap-4 overflow-x-auto p-6">
+          {columns.map((col) => (
+            <DroppableColumn
+              key={col.id}
+              column={col}
+              onRename={handleRenameColumn}
+              onDelete={handleDeleteColumn}
+              onAddCard={handleOpenCreateCard}
+            >
+              {getCardsForColumn(col.id).map((card) => (
+                <DraggableCard key={card.id} card={card} onClick={handleOpenEditCard} />
+              ))}
+            </DroppableColumn>
+          ))}
 
-        {addingColumn ? (
-          <div className="flex w-72 shrink-0 flex-col gap-2 rounded-lg border bg-muted/30 p-3">
-            <Input
-              value={newColumnName}
-              onChange={(e) => setNewColumnName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
-              onBlur={() => {
-                if (!newColumnName.trim()) setAddingColumn(false);
-              }}
-              placeholder="Column name..."
-              className="h-9"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleAddColumn}>
-                Add
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAddingColumn(false)}>
-                Cancel
-              </Button>
+          {addingColumn ? (
+            <div className="flex w-72 shrink-0 flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+              <Input
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
+                onBlur={() => {
+                  if (!newColumnName.trim()) setAddingColumn(false);
+                }}
+                placeholder="Column name..."
+                className="h-9"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleAddColumn}>
+                  Add
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAddingColumn(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            className="w-72 shrink-0 border-dashed"
-            onClick={() => setAddingColumn(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Column
-          </Button>
-        )}
-      </main>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-72 shrink-0 border-dashed"
+              onClick={() => setAddingColumn(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Column
+            </Button>
+          )}
+        </main>
+
+        <DragOverlay>
+          {activeCard ? <KanbanCard card={activeCard} onClick={() => {}} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       <CardDialog
         open={cardDialogOpen}
