@@ -20,3 +20,4 @@ All 13 specs completed — 144 tests passing.
 | S12 | `__tests__/s12-integration.test.ts` | Full flow: board → columns → cards → labels → drag → verify | ✅ |
 | S13 | `__tests__/s13-labels-per-project.test.ts` | Labels scoped per board, board-scoped API, cascade delete | ✅ |
 | S14 | `__tests__/s14-users.test.ts` | User CRUD, board membership, card author/assignee | ✅ |
+| S15 | `__tests__/s15-card-types.test.ts` | Type CRUD, card type_id, global types | ✅ |
