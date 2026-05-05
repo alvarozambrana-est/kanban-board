@@ -13,3 +13,4 @@
 | 2026-05-04 | S8 | Card UI — cards in columns, create/edit dialog | ✅ 11/11 tests pass, 110 total |
 | 2026-05-04 | S9 | Drag & Drop — @dnd-kit between columns | ✅ 6/6 tests pass, 116 total |
 | 2026-05-04 | S10 | Labels API + UI — CRUD, badges, label manager | ✅ 14/14 tests pass, 130 total |
+| 2026-05-04 | S11 | Reordering — sortable columns, card position integrity | ✅ 5/5 tests pass, 135 total |

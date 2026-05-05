@@ -12,9 +12,14 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { BoardHeader } from "@/components/board-header";
-import { DroppableColumn } from "@/components/droppable-column";
+import { SortableColumnItem } from "@/components/sortable-column-item";
 import { DraggableCard } from "@/components/draggable-card";
 import { KanbanCard } from "@/components/kanban-card";
 import { CardDialog } from "@/components/card-dialog";
@@ -91,6 +96,29 @@ export default function BoardPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveCard(null);
     const { active, over } = event;
+
+    if (!over) return;
+
+    // Handle column reorder
+    if (active.data.current?.type === "column" && over.data.current?.type === "column") {
+      const oldIndex = columns.findIndex(
+        (c) => `column-sort-${c.id}` === active.id
+      );
+      const newIndex = columns.findIndex(
+        (c) => `column-sort-${c.id}` === over.id
+      );
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const newColumns = arrayMove(columns, oldIndex, newIndex);
+        setColumns(newColumns);
+        await fetch("/api/columns/reorder", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedIds: newColumns.map((c) => c.id) }),
+        });
+      }
+      return;
+    }
 
     if (!over || active.data.current?.type !== "card") return;
 
@@ -251,24 +279,29 @@ export default function BoardPage() {
         onDragEnd={handleDragEnd}
       >
         <main className="flex flex-1 gap-4 overflow-x-auto p-6">
-          {columns.map((col) => (
-            <DroppableColumn
-              key={col.id}
-              column={col}
-              onRename={handleRenameColumn}
-              onDelete={handleDeleteColumn}
-              onAddCard={handleOpenCreateCard}
-            >
-              {getCardsForColumn(col.id).map((card) => (
-                <DraggableCard
-                  key={card.id}
-                  card={card}
-                  labels={cardLabelMap[card.id]}
-                  onClick={handleOpenEditCard}
-                />
-              ))}
-            </DroppableColumn>
-          ))}
+          <SortableContext
+            items={columns.map((c) => `column-sort-${c.id}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {columns.map((col) => (
+              <SortableColumnItem
+                key={col.id}
+                column={col}
+                onRename={handleRenameColumn}
+                onDelete={handleDeleteColumn}
+                onAddCard={handleOpenCreateCard}
+              >
+                {getCardsForColumn(col.id).map((card) => (
+                  <DraggableCard
+                    key={card.id}
+                    card={card}
+                    labels={cardLabelMap[card.id]}
+                    onClick={handleOpenEditCard}
+                  />
+                ))}
+              </SortableColumnItem>
+            ))}
+          </SortableContext>
 
           {addingColumn ? (
             <div className="flex w-72 shrink-0 flex-col gap-2 rounded-lg border bg-muted/30 p-3">
