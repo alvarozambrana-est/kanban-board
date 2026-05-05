@@ -2,7 +2,7 @@
 
 Each test file maps to one spec. Status: ⬜ pending | 🟡 in_progress | ✅ passing
 
-All 13 specs completed — 144 tests passing.
+All 18 specs completed — 181 tests passing.
 
 | Spec | Test File | Test Cases | Status |
 |------|-----------|------------|--------|
@@ -21,3 +21,6 @@ All 13 specs completed — 144 tests passing.
 | S13 | `__tests__/s13-labels-per-project.test.ts` | Labels scoped per board, board-scoped API, cascade delete | ✅ |
 | S14 | `__tests__/s14-users.test.ts` | User CRUD, board membership, card author/assignee | ✅ |
 | S15 | `__tests__/s15-card-types.test.ts` | Type CRUD, card type_id, global types | ✅ |
+| S16 | `__tests__/s16-search.test.ts` | Search by text, board, type, assignee, author, priority | ✅ |
+| S17 | `__tests__/s17-reports.test.ts` | CSV/TSV export with headers, escaping, all fields | ✅ |
+| S18 | `__tests__/s18-managers.test.tsx` | Per-project user/type management, board isolation | ✅ |

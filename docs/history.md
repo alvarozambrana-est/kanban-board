@@ -18,3 +18,6 @@
 | 2026-05-04 | S13 | Labels per-project + card dialog assignment | ✅ 7/7 tests pass, 144 total |
 | 2026-05-04 | S14 | Users CRUD + board membership + card author/assignee | ✅ 13/13 tests pass, 157 total |
 | 2026-05-04 | S15 | Card types (global) — CRUD API, card type_id field | ✅ 6/6 tests pass, 163 total |
+| 2026-05-04 | S16 | Search API — filters for text, board, type, assignee, author, priority | ✅ 7/7 tests pass, 170 total |
+| 2026-05-04 | S17 | Reports — CSV/TSV export for board cards | ✅ 5/5 tests pass, 175 total |
+| 2026-05-04 | S18 | Per-project managers — users, labels, types panel | ✅ 6/6 tests pass, 181 total |
