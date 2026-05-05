@@ -6,8 +6,10 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BoardHeader } from "@/components/board-header";
 import { KanbanColumn } from "@/components/kanban-column";
+import { KanbanCard } from "@/components/kanban-card";
+import { CardDialog } from "@/components/card-dialog";
 import { Input } from "@/components/ui/input";
-import type { Board, Column } from "@/lib/db";
+import type { Board, Column, Card } from "@/lib/db";
 
 export default function BoardPage() {
   const params = useParams();
@@ -16,8 +18,12 @@ export default function BoardPage() {
 
   const [board, setBoard] = useState<Board | null>(null);
   const [columns, setColumns] = useState<Column[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
 
   const fetchBoard = useCallback(async () => {
     const res = await fetch(`/api/boards/${boardId}`);
@@ -32,10 +38,22 @@ export default function BoardPage() {
     setColumns(data);
   }, [boardId]);
 
+  const fetchCards = useCallback(async () => {
+    const res = await fetch(`/api/boards/${boardId}/cards`);
+    const data = await res.json();
+    setCards(data);
+  }, [boardId]);
+
   useEffect(() => {
     fetchBoard();
     fetchColumns();
-  }, [fetchBoard, fetchColumns]);
+    fetchCards();
+  }, [fetchBoard, fetchColumns, fetchCards]);
+
+  const refreshBoard = () => {
+    fetchColumns();
+    fetchCards();
+  };
 
   const handleRenameBoard = async (name: string) => {
     await fetch(`/api/boards/${boardId}`, {
@@ -60,7 +78,7 @@ export default function BoardPage() {
     });
     setNewColumnName("");
     setAddingColumn(false);
-    fetchColumns();
+    refreshBoard();
   };
 
   const handleRenameColumn = async (id: number, name: string) => {
@@ -74,8 +92,48 @@ export default function BoardPage() {
 
   const handleDeleteColumn = async (id: number) => {
     await fetch(`/api/columns/${id}`, { method: "DELETE" });
-    fetchColumns();
+    refreshBoard();
   };
+
+  const handleOpenCreateCard = (columnId: number) => {
+    setSelectedColumn(columnId);
+    setEditingCard(null);
+    setCardDialogOpen(true);
+  };
+
+  const handleOpenEditCard = (card: Card) => {
+    setEditingCard(card);
+    setSelectedColumn(null);
+    setCardDialogOpen(true);
+  };
+
+  const handleSaveCard = async (data: {
+    title: string;
+    description: string;
+    priority: "low" | "medium" | "high";
+    due_date: string;
+  }) => {
+    if (editingCard) {
+      await fetch(`/api/cards/${editingCard.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } else if (selectedColumn) {
+      await fetch(`/api/boards/${boardId}/cards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ column_id: selectedColumn, ...data }),
+      });
+    }
+    setCardDialogOpen(false);
+    setEditingCard(null);
+    setSelectedColumn(null);
+    refreshBoard();
+  };
+
+  const getCardsForColumn = (columnId: number) =>
+    cards.filter((c) => c.column_id === columnId);
 
   if (!board) {
     return (
@@ -102,8 +160,12 @@ export default function BoardPage() {
             column={col}
             onRename={handleRenameColumn}
             onDelete={handleDeleteColumn}
-            onAddCard={() => {}}
-          />
+            onAddCard={handleOpenCreateCard}
+          >
+            {getCardsForColumn(col.id).map((card) => (
+              <KanbanCard key={card.id} card={card} onClick={handleOpenEditCard} />
+            ))}
+          </KanbanColumn>
         ))}
 
         {addingColumn ? (
@@ -139,6 +201,17 @@ export default function BoardPage() {
           </Button>
         )}
       </main>
+
+      <CardDialog
+        open={cardDialogOpen}
+        onClose={() => {
+          setCardDialogOpen(false);
+          setEditingCard(null);
+          setSelectedColumn(null);
+        }}
+        onSave={handleSaveCard}
+        initial={editingCard}
+      />
     </div>
   );
 }
