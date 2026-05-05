@@ -1,7 +1,8 @@
 "use client";
 
 import { Calendar } from "lucide-react";
-import type { Card } from "@/lib/db";
+import { LabelBadge } from "@/components/label-badge";
+import type { Card, Label } from "@/lib/db";
 
 const priorityColors: Record<string, string> = {
   high: "bg-red-100 text-red-700",
@@ -17,10 +18,11 @@ const priorityLabels: Record<string, string> = {
 
 interface KanbanCardProps {
   card: Card;
+  labels?: Label[];
   onClick: (card: Card) => void;
 }
 
-export function KanbanCard({ card, onClick }: KanbanCardProps) {
+export function KanbanCard({ card, labels, onClick }: KanbanCardProps) {
   const isOverdue =
     card.due_date && new Date(card.due_date) < new Date() && !card.due_date.includes("T00:00");
 
@@ -50,6 +52,14 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         >
           <Calendar className="h-3 w-3" />
           <span>{card.due_date}</span>
+        </div>
+      )}
+
+      {labels && labels.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {labels.map((label) => (
+            <LabelBadge key={label.id} name={label.name} color={label.color} />
+          ))}
         </div>
       )}
     </div>

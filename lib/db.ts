@@ -318,3 +318,23 @@ export function removeLabelFromCard(cardId: number, labelId: number): void {
     .prepare("DELETE FROM card_labels WHERE card_id = ? AND label_id = ?")
     .run(cardId, labelId);
 }
+
+export function getCardLabelMapForBoard(boardId: number): Record<number, Label[]> {
+  const rows = getDb()
+    .prepare(
+      `SELECT cl.card_id, l.id, l.name, l.color
+       FROM card_labels cl
+       JOIN labels l ON cl.label_id = l.id
+       JOIN cards c ON cl.card_id = c.id
+       JOIN columns col ON c.column_id = col.id
+       WHERE col.board_id = ?`
+    )
+    .all(boardId) as { card_id: number; id: number; name: string; color: string }[];
+
+  const map: Record<number, Label[]> = {};
+  for (const row of rows) {
+    if (!map[row.card_id]) map[row.card_id] = [];
+    map[row.card_id].push({ id: row.id, name: row.name, color: row.color });
+  }
+  return map;
+}

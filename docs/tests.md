@@ -13,6 +13,6 @@ Each test file maps to one spec. Status: ⬜ pending | 🟡 in_progress | ✅ pa
 | S7 | `__tests__/s7-card-api.test.ts` | CRUD cards, priority validation, due_date, move | ✅ |
 | S8 | `__tests__/s8-card-ui.test.tsx` | Card rendering, create/edit dialog, priority/due date display | ✅ |
 | S9 | `__tests__/s9-dragdrop.test.tsx` | Drag card between columns, position update, API persistence | ✅ |
-| S10 | `__tests__/s10-labels.test.tsx` | Label CRUD, assign/remove labels from cards, color badges | ⬜ |
+| S10 | `__tests__/s10-labels.test.tsx` | Label CRUD, assign/remove labels from cards, color badges | ✅ |
 | S11 | `__tests__/s11-reorder.test.tsx` | Card reorder within column, column reorder, position integrity | ⬜ |
 | S12 | `__tests__/s12-integration.test.tsx` | Full flow: board → columns → cards → labels → drag → verify | ⬜ |

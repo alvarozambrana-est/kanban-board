@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -18,8 +18,9 @@ import { DroppableColumn } from "@/components/droppable-column";
 import { DraggableCard } from "@/components/draggable-card";
 import { KanbanCard } from "@/components/kanban-card";
 import { CardDialog } from "@/components/card-dialog";
+import { LabelManager } from "@/components/label-manager";
 import { Input } from "@/components/ui/input";
-import type { Board, Column, Card } from "@/lib/db";
+import type { Board, Column, Card, Label } from "@/lib/db";
 
 export default function BoardPage() {
   const params = useParams();
@@ -29,12 +30,14 @@ export default function BoardPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [cardLabelMap, setCardLabelMap] = useState<Record<number, Label[]>>({});
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -59,15 +62,23 @@ export default function BoardPage() {
     setCards(data);
   }, [boardId]);
 
+  const fetchCardLabels = useCallback(async () => {
+    const res = await fetch(`/api/boards/${boardId}/card-labels`);
+    const data = await res.json();
+    setCardLabelMap(data);
+  }, [boardId]);
+
   useEffect(() => {
     fetchBoard();
     fetchColumns();
     fetchCards();
-  }, [fetchBoard, fetchColumns, fetchCards]);
+    fetchCardLabels();
+  }, [fetchBoard, fetchColumns, fetchCards, fetchCardLabels]);
 
   const refreshBoard = () => {
     fetchColumns();
     fetchCards();
+    fetchCardLabels();
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -94,7 +105,6 @@ export default function BoardPage() {
 
     if (targetColumnId === null) return;
 
-    // Determine target position
     const targetCards = cards
       .filter((c) => c.column_id === targetColumnId)
       .filter((c) => c.id !== draggedCard.id)
@@ -109,7 +119,6 @@ export default function BoardPage() {
       }
     }
 
-    // Optimistic update
     setCards((prev) =>
       prev.map((c) =>
         c.id === draggedCard.id
@@ -118,7 +127,6 @@ export default function BoardPage() {
       )
     );
 
-    // Persist to API
     await fetch("/api/cards/reorder", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -179,6 +187,7 @@ export default function BoardPage() {
   };
 
   const handleOpenEditCard = (card: Card) => {
+    if (activeCard) return; // prevent edit during drag
     setEditingCard(card);
     setSelectedColumn(null);
     setCardDialogOpen(true);
@@ -224,12 +233,16 @@ export default function BoardPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="border-b bg-background px-6 py-3">
+      <header className="flex items-center justify-between border-b bg-background px-6 py-3">
         <BoardHeader
           name={board.name}
           onRename={handleRenameBoard}
           onDelete={handleDeleteBoard}
         />
+        <Button variant="outline" size="sm" onClick={() => setLabelManagerOpen(true)}>
+          <Tag className="mr-2 h-4 w-4" />
+          Labels
+        </Button>
       </header>
 
       <DndContext
@@ -247,7 +260,12 @@ export default function BoardPage() {
               onAddCard={handleOpenCreateCard}
             >
               {getCardsForColumn(col.id).map((card) => (
-                <DraggableCard key={card.id} card={card} onClick={handleOpenEditCard} />
+                <DraggableCard
+                  key={card.id}
+                  card={card}
+                  labels={cardLabelMap[card.id]}
+                  onClick={handleOpenEditCard}
+                />
               ))}
             </DroppableColumn>
           ))}
@@ -287,7 +305,13 @@ export default function BoardPage() {
         </main>
 
         <DragOverlay>
-          {activeCard ? <KanbanCard card={activeCard} onClick={() => {}} /> : null}
+          {activeCard ? (
+            <KanbanCard
+              card={activeCard}
+              labels={cardLabelMap[activeCard.id]}
+              onClick={() => {}}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
 
@@ -300,6 +324,11 @@ export default function BoardPage() {
         }}
         onSave={handleSaveCard}
         initial={editingCard}
+      />
+
+      <LabelManager
+        open={labelManagerOpen}
+        onClose={() => setLabelManagerOpen(false)}
       />
     </div>
   );
