@@ -362,6 +362,7 @@ export default function BoardPage() {
       <LabelManager
         open={labelManagerOpen}
         onClose={() => setLabelManagerOpen(false)}
+        boardId={boardId}
       />
     </div>
   );

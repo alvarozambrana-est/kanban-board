@@ -34,12 +34,16 @@ CREATE TABLE IF NOT EXISTS cards (
   position INTEGER NOT NULL DEFAULT 0,
   priority TEXT CHECK(priority IN ('low','medium','high')) DEFAULT 'medium',
   due_date TEXT,
+  type_id INTEGER REFERENCES card_types(id) ON DELETE SET NULL,
+  author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS labels (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT '#6366f1'
 );
@@ -50,7 +54,33 @@ CREATE TABLE IF NOT EXISTS card_labels (
   PRIMARY KEY (card_id, label_id)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  avatar_url TEXT
+);
+
+CREATE TABLE IF NOT EXISTS board_users (
+  board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (board_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS card_types (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#6366f1'
+);
+
 PRAGMA foreign_keys = ON;
+`;
+
+const MIGRATIONS_SQL = `
+ALTER TABLE labels ADD COLUMN board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE;
+ALTER TABLE cards ADD COLUMN type_id INTEGER REFERENCES card_types(id) ON DELETE SET NULL;
+ALTER TABLE cards ADD COLUMN author_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE cards ADD COLUMN assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
 `;
 
 export function getDb(): Database.Database {
@@ -63,6 +93,11 @@ export function getDb(): Database.Database {
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
     db.exec(SCHEMA_SQL);
+    try {
+      db.exec(MIGRATIONS_SQL);
+    } catch {
+      // columns already exist, ignore
+    }
   }
   return db;
 }
@@ -272,8 +307,15 @@ export function moveCard(cardId: number, toColumnId: number, toPosition: number)
 
 export interface Label {
   id: number;
+  board_id: number | null;
   name: string;
   color: string;
+}
+
+export function getLabelsByBoard(boardId: number): Label[] {
+  return getDb()
+    .prepare("SELECT * FROM labels WHERE board_id = ? OR board_id IS NULL ORDER BY id ASC")
+    .all(boardId) as Label[];
 }
 
 export function getAllLabels(): Label[] {
@@ -284,8 +326,12 @@ export function getLabelById(id: number): Label | undefined {
   return getDb().prepare("SELECT * FROM labels WHERE id = ?").get(id) as Label | undefined;
 }
 
-export function createLabel(name: string, color = "#6366f1"): Label {
-  const result = getDb().prepare("INSERT INTO labels (name, color) VALUES (?, ?)").run(name, color);
+export function createLabel(name: string, color = "#6366f1", boardId?: number): Label {
+  const result = getDb().prepare("INSERT INTO labels (name, color, board_id) VALUES (?, ?, ?)").run(
+    name,
+    color,
+    boardId ?? null
+  );
   return getLabelById(result.lastInsertRowid as number)!;
 }
 

@@ -15,9 +15,10 @@ import type { Label } from "@/lib/db";
 interface LabelManagerProps {
   open: boolean;
   onClose: () => void;
+  boardId: number;
 }
 
-export function LabelManager({ open, onClose }: LabelManagerProps) {
+export function LabelManager({ open, onClose, boardId }: LabelManagerProps) {
   const [labels, setLabels] = useState<Label[]>([]);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#6366f1");
@@ -26,18 +27,18 @@ export function LabelManager({ open, onClose }: LabelManagerProps) {
   const [editColor, setEditColor] = useState("");
 
   const fetchLabels = async () => {
-    const res = await fetch("/api/labels");
+    const res = await fetch(`/api/boards/${boardId}/labels`);
     const data = await res.json();
     setLabels(data);
   };
 
   useEffect(() => {
     if (open) fetchLabels();
-  }, [open]);
+  }, [open, boardId]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    await fetch("/api/labels", {
+    await fetch(`/api/boards/${boardId}/labels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName.trim(), color: newColor }),
@@ -71,6 +72,9 @@ export function LabelManager({ open, onClose }: LabelManagerProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {labels.length === 0 && (
+            <p className="text-sm text-muted-foreground">No labels yet. Create one below.</p>
+          )}
           {labels.map((label) => (
             <div key={label.id} className="flex items-center gap-2">
               {editingId === label.id ? (

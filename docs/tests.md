@@ -2,7 +2,7 @@
 
 Each test file maps to one spec. Status: ⬜ pending | 🟡 in_progress | ✅ passing
 
-All 12 specs completed — 137 tests passing.
+All 13 specs completed — 144 tests passing.
 
 | Spec | Test File | Test Cases | Status |
 |------|-----------|------------|--------|
@@ -18,3 +18,4 @@ All 12 specs completed — 137 tests passing.
 | S10 | `__tests__/s10-labels.test.tsx` | Label CRUD, assign/remove labels from cards, color badges | ✅ |
 | S11 | `__tests__/s11-reorder.test.tsx` | Card reorder within column, column reorder, position integrity | ✅ |
 | S12 | `__tests__/s12-integration.test.ts` | Full flow: board → columns → cards → labels → drag → verify | ✅ |
+| S13 | `__tests__/s13-labels-per-project.test.ts` | Labels scoped per board, board-scoped API, cascade delete | ✅ |
