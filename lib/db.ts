@@ -481,3 +481,57 @@ export function deleteCardType(id: number): boolean {
   const result = getDb().prepare("DELETE FROM card_types WHERE id = ?").run(id);
   return result.changes > 0;
 }
+
+/* ---------- Search ---------- */
+
+export interface SearchFilters {
+  q?: string;
+  board_id?: number;
+  type_id?: number;
+  assignee_id?: number;
+  author_id?: number;
+  priority?: string;
+}
+
+export function searchCards(filters: SearchFilters): Card[] {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (filters.q) {
+    conditions.push("(c.title LIKE ? OR c.description LIKE ?)");
+    const q = `%${filters.q}%`;
+    params.push(q, q);
+  }
+  if (filters.board_id) {
+    conditions.push("col.board_id = ?");
+    params.push(filters.board_id);
+  }
+  if (filters.type_id) {
+    conditions.push("c.type_id = ?");
+    params.push(filters.type_id);
+  }
+  if (filters.assignee_id) {
+    conditions.push("c.assignee_id = ?");
+    params.push(filters.assignee_id);
+  }
+  if (filters.author_id) {
+    conditions.push("c.author_id = ?");
+    params.push(filters.author_id);
+  }
+  if (filters.priority && ["low", "medium", "high"].includes(filters.priority)) {
+    conditions.push("c.priority = ?");
+    params.push(filters.priority);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  return getDb()
+    .prepare(
+      `SELECT c.* FROM cards c
+       JOIN columns col ON c.column_id = col.id
+       ${where}
+       ORDER BY c.updated_at DESC
+       LIMIT 100`
+    )
+    .all(...params) as Card[];
+}
