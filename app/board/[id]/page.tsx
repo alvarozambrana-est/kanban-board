@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Tag } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -23,7 +23,7 @@ import { SortableColumnItem } from "@/components/sortable-column-item";
 import { DraggableCard } from "@/components/draggable-card";
 import { KanbanCard } from "@/components/kanban-card";
 import { CardDialog } from "@/components/card-dialog";
-import { LabelManager } from "@/components/label-manager";
+import { BoardManager } from "@/components/board-manager";
 import { Input } from "@/components/ui/input";
 import type { Board, Column, Card, Label } from "@/lib/db";
 
@@ -42,7 +42,7 @@ export default function BoardPage() {
   const [selectedColumn, setSelectedColumn] = useState<number | null>(null);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
-  const [labelManagerOpen, setLabelManagerOpen] = useState(false);
+  const [boardManagerOpen, setBoardManagerOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -267,9 +267,9 @@ export default function BoardPage() {
           onRename={handleRenameBoard}
           onDelete={handleDeleteBoard}
         />
-        <Button variant="outline" size="sm" onClick={() => setLabelManagerOpen(true)}>
-          <Tag className="mr-2 h-4 w-4" />
-          Labels
+        <Button variant="outline" size="sm" onClick={() => setBoardManagerOpen(true)}>
+          <Settings className="mr-2 h-4 w-4" />
+          Manage
         </Button>
       </header>
 
@@ -359,9 +359,9 @@ export default function BoardPage() {
         initial={editingCard}
       />
 
-      <LabelManager
-        open={labelManagerOpen}
-        onClose={() => setLabelManagerOpen(false)}
+      <BoardManager
+        open={boardManagerOpen}
+        onClose={() => setBoardManagerOpen(false)}
         boardId={boardId}
       />
     </div>
