@@ -20,6 +20,18 @@ vi.mock("next/link", () => ({
 describe("S8 - Card UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    if (!Element.prototype.hasPointerCapture) {
+      Element.prototype.hasPointerCapture = vi.fn(() => false);
+    }
+    if (!Element.prototype.setPointerCapture) {
+      Element.prototype.setPointerCapture = vi.fn();
+    }
+    if (!Element.prototype.releasePointerCapture) {
+      Element.prototype.releasePointerCapture = vi.fn();
+    }
+    if (!Element.prototype.scrollIntoView) {
+      Element.prototype.scrollIntoView = vi.fn();
+    }
   });
 
   describe("KanbanCard", () => {
@@ -31,6 +43,9 @@ describe("S8 - Card UI", () => {
       position: 0,
       priority: "medium" as const,
       due_date: null,
+      type_id: null,
+      author_id: null,
+      assignee_id: null,
       created_at: "2026-05-04",
       updated_at: "2026-05-04",
     };
@@ -73,6 +88,28 @@ describe("S8 - Card UI", () => {
         />
       );
       expect(screen.getByText("2026-06-15")).toBeTruthy();
+    });
+
+    it("shows assignee name when present", () => {
+      render(
+        <KanbanCard
+          card={{ ...baseCard, assignee_id: 1 }}
+          users={[{ id: 1, name: "Alice", email: null, avatar_url: null }]}
+          onClick={vi.fn()}
+        />
+      );
+      expect(screen.getByText("Alice")).toBeTruthy();
+    });
+
+    it("does not show assignee for unknown user", () => {
+      render(
+        <KanbanCard
+          card={{ ...baseCard, assignee_id: 99 }}
+          users={[{ id: 1, name: "Alice", email: null, avatar_url: null }]}
+          onClick={vi.fn()}
+        />
+      );
+      expect(screen.queryByText("Alice")).toBeNull();
     });
 
     it("calls onClick when clicked", async () => {
@@ -122,6 +159,73 @@ describe("S8 - Card UI", () => {
         description: "My desc",
         priority: "medium",
         due_date: "",
+        assignee_id: null,
+      });
+    });
+
+    it("renders assignee selector", () => {
+      render(
+        <CardDialog
+          open={true}
+          onClose={vi.fn()}
+          onSave={vi.fn()}
+          initial={null}
+          users={[{ id: 1, name: "Alice", email: null, avatar_url: null }]}
+        />
+      );
+      expect(screen.getByText("Assignee")).toBeTruthy();
+      expect(screen.getByText("Unassigned")).toBeTruthy();
+    });
+
+    it("preselects initial assignee", () => {
+      const card = {
+        id: 1,
+        column_id: 1,
+        title: "Existing Task",
+        description: "Some desc",
+        position: 0,
+        priority: "high" as const,
+        due_date: "2026-06-01",
+        type_id: null,
+        author_id: null,
+        assignee_id: 2,
+        created_at: "2026-05-04",
+        updated_at: "2026-05-04",
+      };
+      render(
+        <CardDialog
+          open={true}
+          onClose={vi.fn()}
+          onSave={vi.fn()}
+          initial={card}
+          users={[{ id: 2, name: "Bob", email: null, avatar_url: null }]}
+        />
+      );
+      expect(screen.getByText("Bob")).toBeTruthy();
+    });
+
+    it("submits selected assignee", async () => {
+      const onSave = vi.fn();
+      render(
+        <CardDialog
+          open={true}
+          onClose={vi.fn()}
+          onSave={onSave}
+          initial={null}
+          users={[{ id: 3, name: "Charlie", email: null, avatar_url: null }]}
+        />
+      );
+      const user = userEvent.setup();
+      await user.type(screen.getByPlaceholderText("Enter card title"), "New Card");
+      await user.click(screen.getByRole("combobox", { name: "Assignee" }));
+      await user.click(screen.getByText("Charlie"));
+      await user.click(screen.getByText("Create"));
+      expect(onSave).toHaveBeenCalledWith({
+        title: "New Card",
+        description: "",
+        priority: "medium",
+        due_date: "",
+        assignee_id: 3,
       });
     });
 

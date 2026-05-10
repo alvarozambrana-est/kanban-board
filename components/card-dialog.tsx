@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Card } from "@/lib/db";
+import type { Card, User } from "@/lib/db";
+
+const UNASSIGNED_VALUE = "unassigned";
 
 interface CardDialogProps {
   open: boolean;
@@ -29,15 +31,18 @@ interface CardDialogProps {
     description: string;
     priority: "low" | "medium" | "high";
     due_date: string;
+    assignee_id: number | null;
   }) => void;
   initial?: Card | null;
+  users?: User[];
 }
 
-export function CardDialog({ open, onClose, onSave, initial }: CardDialogProps) {
+export function CardDialog({ open, onClose, onSave, initial, users = [] }: CardDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [dueDate, setDueDate] = useState("");
+  const [assigneeValue, setAssigneeValue] = useState(UNASSIGNED_VALUE);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,11 +51,13 @@ export function CardDialog({ open, onClose, onSave, initial }: CardDialogProps) 
       setDescription(initial.description || "");
       setPriority(initial.priority);
       setDueDate(initial.due_date || "");
+      setAssigneeValue(initial.assignee_id ? String(initial.assignee_id) : UNASSIGNED_VALUE);
     } else {
       setTitle("");
       setDescription("");
       setPriority("medium");
       setDueDate("");
+      setAssigneeValue(UNASSIGNED_VALUE);
     }
     setError("");
   }, [initial, open]);
@@ -65,6 +72,7 @@ export function CardDialog({ open, onClose, onSave, initial }: CardDialogProps) 
       description: description.trim(),
       priority,
       due_date: dueDate,
+      assignee_id: assigneeValue === UNASSIGNED_VALUE ? null : Number(assigneeValue),
     });
     onClose();
   };
@@ -123,6 +131,23 @@ export function CardDialog({ open, onClose, onSave, initial }: CardDialogProps) 
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="card-assignee">Assignee</Label>
+            <Select value={assigneeValue} onValueChange={setAssigneeValue}>
+              <SelectTrigger id="card-assignee">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

@@ -25,7 +25,7 @@ import { KanbanCard } from "@/components/kanban-card";
 import { CardDialog } from "@/components/card-dialog";
 import { BoardManager } from "@/components/board-manager";
 import { Input } from "@/components/ui/input";
-import type { Board, Column, Card, Label } from "@/lib/db";
+import type { Board, Column, Card, Label, User } from "@/lib/db";
 
 export default function BoardPage() {
   const params = useParams();
@@ -35,6 +35,7 @@ export default function BoardPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [cardLabelMap, setCardLabelMap] = useState<Record<number, Label[]>>({});
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
@@ -67,6 +68,12 @@ export default function BoardPage() {
     setCards(data);
   }, [boardId]);
 
+  const fetchUsers = useCallback(async () => {
+    const res = await fetch("/api/users");
+    const data = await res.json();
+    setUsers(data);
+  }, []);
+
   const fetchCardLabels = useCallback(async () => {
     const res = await fetch(`/api/boards/${boardId}/card-labels`);
     const data = await res.json();
@@ -77,8 +84,9 @@ export default function BoardPage() {
     fetchBoard();
     fetchColumns();
     fetchCards();
+    fetchUsers();
     fetchCardLabels();
-  }, [fetchBoard, fetchColumns, fetchCards, fetchCardLabels]);
+  }, [fetchBoard, fetchColumns, fetchCards, fetchUsers, fetchCardLabels]);
 
   const refreshBoard = () => {
     fetchColumns();
@@ -226,6 +234,7 @@ export default function BoardPage() {
     description: string;
     priority: "low" | "medium" | "high";
     due_date: string;
+    assignee_id: number | null;
   }) => {
     if (editingCard) {
       await fetch(`/api/cards/${editingCard.id}`, {
@@ -296,6 +305,7 @@ export default function BoardPage() {
                     key={card.id}
                     card={card}
                     labels={cardLabelMap[card.id]}
+                    users={users}
                     onClick={handleOpenEditCard}
                   />
                 ))}
@@ -342,6 +352,7 @@ export default function BoardPage() {
             <KanbanCard
               card={activeCard}
               labels={cardLabelMap[activeCard.id]}
+              users={users}
               onClick={() => {}}
             />
           ) : null}
@@ -357,6 +368,7 @@ export default function BoardPage() {
         }}
         onSave={handleSaveCard}
         initial={editingCard}
+        users={users}
       />
 
       <BoardManager

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import path from "path";
 import fs from "fs";
-import { setDbPath, getDb, closeDb, createBoard, createColumn, createCard, getCardsByBoard } from "../lib/db";
+import { setDbPath, getDb, closeDb, createBoard, createColumn, createCard, createUser, getCardsByBoard } from "../lib/db";
 import {
   GET as listCards,
   POST as createCardHandler,
@@ -38,6 +38,7 @@ describe("S7 - Card API", () => {
     db.exec("DELETE FROM cards");
     db.exec("DELETE FROM columns");
     db.exec("DELETE FROM boards");
+    db.exec("DELETE FROM users");
     boardId = createBoard("Test Board").id;
     columnId = createColumn(boardId, "Todo").id;
   });
@@ -85,6 +86,49 @@ describe("S7 - Card API", () => {
       expect(data.title).toBe("New Task");
       expect(data.priority).toBe("high");
       expect(data.due_date).toBe("2026-06-01");
+      expect(data.assignee_id).toBeNull();
+    });
+
+    it("creates a card with an assignee", async () => {
+      const assignee = createUser("Assigned User");
+      const req = new Request("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({
+          column_id: columnId,
+          title: "Assigned Task",
+          assignee_id: assignee.id,
+        }),
+      });
+      const res = await createCardHandler(req, {
+        params: Promise.resolve({ id: String(boardId) }),
+      });
+      const data = await res.json();
+      expect(res.status).toBe(201);
+      expect(data.assignee_id).toBe(assignee.id);
+    });
+
+    it("rejects non-numeric assignee_id", async () => {
+      const req = new Request("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({ column_id: columnId, title: "Task", assignee_id: "abc" }),
+      });
+      const res = await createCardHandler(req, {
+        params: Promise.resolve({ id: String(boardId) }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects non-scalar assignee_id values", async () => {
+      for (const assignee_id of [true, [1], { id: 1 }]) {
+        const req = new Request("http://localhost", {
+          method: "POST",
+          body: JSON.stringify({ column_id: columnId, title: "Task", assignee_id }),
+        });
+        const res = await createCardHandler(req, {
+          params: Promise.resolve({ id: String(boardId) }),
+        });
+        expect(res.status).toBe(400);
+      }
     });
 
     it("defaults priority to medium", async () => {
@@ -148,6 +192,62 @@ describe("S7 - Card API", () => {
       expect(res.status).toBe(200);
       expect(data.title).toBe("New");
       expect(data.priority).toBe("high");
+    });
+
+    it("updates a card assignee", async () => {
+      const assignee = createUser("Assigned User");
+      const card = createCard(columnId, "Task");
+      const req = new Request("http://localhost", {
+        method: "PUT",
+        body: JSON.stringify({ assignee_id: assignee.id }),
+      });
+      const res = await updateCard(req, {
+        params: Promise.resolve({ id: String(card.id) }),
+      });
+      const data = await res.json();
+      expect(res.status).toBe(200);
+      expect(data.assignee_id).toBe(assignee.id);
+    });
+
+    it("clears a card assignee", async () => {
+      const assignee = createUser("Assigned User");
+      const card = createCard(columnId, "Task", "", "medium", null, undefined, undefined, assignee.id);
+      const req = new Request("http://localhost", {
+        method: "PUT",
+        body: JSON.stringify({ assignee_id: null }),
+      });
+      const res = await updateCard(req, {
+        params: Promise.resolve({ id: String(card.id) }),
+      });
+      const data = await res.json();
+      expect(res.status).toBe(200);
+      expect(data.assignee_id).toBeNull();
+    });
+
+    it("rejects non-numeric assignee_id on update", async () => {
+      const card = createCard(columnId, "Task");
+      const req = new Request("http://localhost", {
+        method: "PUT",
+        body: JSON.stringify({ assignee_id: "abc" }),
+      });
+      const res = await updateCard(req, {
+        params: Promise.resolve({ id: String(card.id) }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects non-scalar assignee_id values on update", async () => {
+      const card = createCard(columnId, "Task");
+      for (const assignee_id of [true, [1], { id: 1 }]) {
+        const req = new Request("http://localhost", {
+          method: "PUT",
+          body: JSON.stringify({ assignee_id }),
+        });
+        const res = await updateCard(req, {
+          params: Promise.resolve({ id: String(card.id) }),
+        });
+        expect(res.status).toBe(400);
+      }
     });
 
     it("rejects invalid priority on update", async () => {

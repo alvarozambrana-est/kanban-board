@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCardById, updateCard, deleteCard } from "@/lib/db";
+import { getCardById, updateCard, deleteCard, getUserById } from "@/lib/db";
 
 export async function PUT(
   request: Request,
@@ -8,13 +8,31 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, priority, due_date } = body;
+    const { title, description, priority, due_date, assignee_id } = body;
 
     if (priority && !["low", "medium", "high"].includes(priority)) {
       return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
     }
 
-    const card = updateCard(Number(id), { title, description, priority, due_date });
+    const hasAssignee = assignee_id !== undefined && assignee_id !== null;
+    const assigneeId = hasAssignee && typeof assignee_id === "number"
+      ? assignee_id
+      : hasAssignee && typeof assignee_id === "string" && /^\d+$/.test(assignee_id)
+        ? Number(assignee_id)
+        : null;
+    if (hasAssignee) {
+      if (assigneeId === null || !Number.isSafeInteger(assigneeId) || !getUserById(assigneeId)) {
+        return NextResponse.json({ error: "Invalid assignee_id" }, { status: 400 });
+      }
+    }
+
+    const card = updateCard(Number(id), {
+      title,
+      description,
+      priority,
+      due_date,
+      ...(assignee_id !== undefined ? { assignee_id: assigneeId } : {}),
+    });
     if (!card) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
     }
